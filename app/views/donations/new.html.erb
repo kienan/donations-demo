@@ -1,0 +1,55 @@
+<%= form_tag donations_path do %>
+  <article>
+    <%= label_tag(:amount, 'Donation Amount:') %>
+    <%= select_tag "amount", options_for_select(["10", "20", "50"], "10") %>
+  </article>
+  <article>
+    <%= hidden_field_tag(:stripeToken) %>
+    <%= hidden_field_tag(:shippingName) %>
+    <%= hidden_field_tag(:shippingAddressLine1) %>
+    <%= hidden_field_tag(:shippingAddressZip) %>
+    <%= hidden_field_tag(:shippingAddressCity) %>
+    <%= hidden_field_tag(:shippingAddressState) %>
+    <%= hidden_field_tag(:shippingAddressCountry) %>
+  </article>
+  <button id='donateButton'>Donate</button>
+<% end %>
+<script src="https://checkout.stripe.com/checkout.js"></script>
+<script>
+// This handler will set up Stripe Checkout and set the hidden values in our form declared above.
+var handler = StripeCheckout.configure({
+  key: '<%= ENV["STRIPE_PUBLISHABLE_KEY"] %>',
+  locale: 'auto',
+  name: 'Our Nonprofit',
+  description: 'One-time donation',
+  billingAddress: true,
+  shippingAddress: true,
+  token: function (token, args) {
+    $('input#stripeToken').val(token.id);
+    $('input#shippingName').val(args['shipping_name']);
+    $('input#shippingAddressLine1').val(args['shipping_address_line1']);
+    $('input#shippingAddressZip').val(args['shipping_address_zip']);
+    $('input#shippingAddressCity').val(args['shipping_address_city']);
+    $('input#shippingAddressState').val(args['shipping_address_state']);
+    $('input#shippingAddressCountry').val(args['shipping_address_country']);
+    $('form').submit();
+  }
+});
+
+// Parse amount and open Checkout on donation button click
+$('#donateButton').on('click', function(e) {
+  e.preventDefault();
+
+  var amount = $('select#amount').val();
+  amount = parseFloat(amount) * 100; // Needs to be an integer!
+
+  handler.open({
+    amount: Math.round(amount)
+  })
+});
+
+// Close Checkout on page navigation
+$(window).on('popstate', function() {
+  handler.close();
+});
+</script>
